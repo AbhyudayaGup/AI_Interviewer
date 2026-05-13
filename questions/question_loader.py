@@ -1,13 +1,42 @@
 import os
 import glob
 import random
-import markdown
+import markdown_it
 
 def parse_markdown_question(file_path):
     """
     Parses a single markdown file into a structured question dictionary.
     """
+    md = markdown_it.MarkdownIt()
     with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # This is a simplified parsing logic. 
+    # It assumes a specific structure for the markdown files.
+    # You might need a more robust parser depending on the complexity of your files.
+    lines = content.split('\n')
+    question_text = ""
+    options = []
+    answer = ""
+    
+    # Heuristic-based parsing
+    in_options = False
+    for line in lines:
+        if line.startswith('###'):
+            question_text = line.replace('###', '').strip()
+        elif line.startswith('*'):
+            options.append(line.replace('*', '').strip())
+            if '[x]' in line:
+                answer = line.replace('*', '').replace('[x]', '').strip()
+        elif 'Answer:' in line:
+            answer = line.split('Answer:')[1].strip()
+
+    return {
+        "question": question_text,
+        "options": options,
+        "answer": answer
+    }
+
         content = f.read()
 
     # A simple parser based on "---" separators

@@ -19,8 +19,7 @@ PyMuPDF
 Pillow
 pytesseract
 unstructured
-markdown
-markdown-it-py
+markdown-it-py==2.2.0
 plotly
 pandas
 numpy
