@@ -19,6 +19,7 @@ PyMuPDF
 Pillow
 pytesseract
 unstructured
+markdown
 markdown-it-py
 plotly
 pandas
