@@ -1,12 +1,13 @@
 from faster_whisper import WhisperModel
 import os
+import torch
 
 # --- Configuration ---
 # Model size: "tiny", "base", "small", "medium", "large-v2", "large-v3"
 # "base" is a good balance of speed and accuracy for this use case.
 MODEL_SIZE = "base"
 COMPUTE_TYPE = "int8" # "float16" for GPU, "int8" for CPU
-DEVICE = "cuda" if os.environ.get("CUDA_is_available") else "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Initialize the model once
 try:

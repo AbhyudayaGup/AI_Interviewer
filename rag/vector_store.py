@@ -1,4 +1,5 @@
 import os
+import torch
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
@@ -13,7 +14,7 @@ def get_embedding_function():
     Initializes and returns the embedding function.
     """
     # Use CUDA if available, otherwise CPU
-    model_kwargs = {'device': 'cuda' if os.environ.get('CUDA_is_available') else 'cpu'}
+    model_kwargs = {'device': 'cuda' if torch.cuda.is_available() else 'cpu'}
     encode_kwargs = {'normalize_embeddings': False}
     
     embeddings = HuggingFaceEmbeddings(

@@ -9,7 +9,9 @@ load_dotenv()
 def get_llm():
     """Initializes and returns the LLM instance."""
     # Using Groq for fast inference. Ensure GROQ_API_KEY is in .env
-    return ChatGroq(temperature=0, model_name="llama3-8b-8192")
+    # Previous models (llama3-8b-8192, mixtral-8x7b-32768) were decommissioned
+    # Using the latest available model: llama-3.1-8b-instant
+    return ChatGroq(temperature=0, model_name="llama-3.1-8b-instant")
 
 def evaluate_response(question_data, user_response):
     """

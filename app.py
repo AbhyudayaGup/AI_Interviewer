@@ -1,6 +1,5 @@
 import streamlit as st
 from utils.ui import setup_page, display_header, display_welcome_message
-from utils.navigation import go_to_interview
 
 def main():
     """
@@ -11,8 +10,9 @@ def main():
     display_header()
     display_welcome_message()
 
-    if st.button("Start Preparedness Evaluation", key="start_interview_button"):
-        go_to_interview()
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        st.page_link("pages/1_Interview.py", label="🎤 Start Preparedness Evaluation", icon="▶️")
 
     # You can add more elements to the welcome page here
     # For example, a brief overview of the process or some graphics.

@@ -16,7 +16,7 @@ def results_page():
     if 'final_report' not in st.session_state:
         st.warning("No report found. Please complete the interview first.")
         if st.button("Back to Home"):
-            st.switch_page("app.py")
+            st.switch_page("app")
         return
 
     report = st.session_state.final_report
@@ -75,9 +75,9 @@ def results_page():
 
     if st.button("Restart Interview"):
         # Clear session state to allow for a new interview
-        for key in st.session_state.keys():
+        for key in list(st.session_state.keys()):
             del st.session_state[key]
-        st.switch_page("app.py")
+        st.switch_page("app")
 
 
 if __name__ == "__main__":

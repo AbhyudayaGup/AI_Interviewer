@@ -1,78 +1,99 @@
 import os
 import glob
 import random
-import markdown_it
+import json
+import yaml
 
 def parse_markdown_question(file_path):
     """
-    Parses a single markdown file into a structured question dictionary.
+    Parses a markdown file with YAML front matter into a structured question dictionary.
     """
-    md = markdown_it.MarkdownIt()
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # This is a simplified parsing logic. 
-    # It assumes a specific structure for the markdown files.
-    # You might need a more robust parser depending on the complexity of your files.
-    lines = content.split('\n')
-    question_text = ""
-    options = []
-    answer = ""
+    # Split by --- to separate YAML front matter from content
+    parts = content.split('---')
+    if len(parts) < 3:
+        return get_default_question()
     
-    # Heuristic-based parsing
-    in_options = False
+    # Parse YAML front matter
+    try:
+        metadata = yaml.safe_load(parts[1])
+    except:
+        metadata = {}
+    
+    # Parse markdown content
+    md_content = parts[2]
+    lines = md_content.split('\n')
+    
+    scenario = ""
+    question_text = ""
+    ideal_concepts = ""
+    dangerous_misconceptions = ""
+    
+    # State machine to parse sections
+    current_section = None
+    section_content = []
+    
     for line in lines:
-        if line.startswith('###'):
-            question_text = line.replace('###', '').strip()
-        elif line.startswith('*'):
-            options.append(line.replace('*', '').strip())
-            if '[x]' in line:
-                answer = line.replace('*', '').replace('[x]', '').strip()
-        elif 'Answer:' in line:
-            answer = line.split('Answer:')[1].strip()
+        if line.startswith('### Scenario'):
+            if current_section and section_content:
+                if current_section == 'scenario':
+                    scenario = ' '.join(section_content).strip()
+                elif current_section == 'question':
+                    question_text = ' '.join(section_content).strip()
+            current_section = 'scenario'
+            section_content = []
+        elif line.startswith('### Question'):
+            if current_section == 'scenario':
+                scenario = ' '.join(section_content).strip()
+            current_section = 'question'
+            section_content = []
+        elif line.startswith('#### Ideal Concepts'):
+            if current_section == 'question':
+                question_text = ' '.join(section_content).strip()
+            current_section = 'ideal'
+            section_content = []
+        elif line.startswith('#### Dangerous Misconceptions'):
+            current_section = 'dangerous'
+            section_content = []
+        elif current_section and line.strip() and not line.startswith('#'):
+            section_content.append(line.strip())
+    
+    # Get the last section
+    if current_section == 'scenario':
+        scenario = ' '.join(section_content).strip()
+    elif current_section == 'question':
+        question_text = ' '.join(section_content).strip()
+    elif current_section == 'ideal':
+        ideal_concepts = ' '.join(section_content).strip()
+    elif current_section == 'dangerous':
+        dangerous_misconceptions = ' '.join(section_content).strip()
 
     return {
+        "id": metadata.get('id', hash(file_path) % 10000),
+        "category": metadata.get('category', 'General'),
+        "scenario": scenario,
         "question": question_text,
-        "options": options,
-        "answer": answer
+        "evaluation_rubric": {
+            "ideal_concepts": ideal_concepts or "Look for safe, prepared responses.",
+            "dangerous_misconceptions": dangerous_misconceptions or "Avoid risky or harmful actions."
+        },
+        "follow_up_guidance": ""
     }
 
-        content = f.read()
-
-    # A simple parser based on "---" separators
-    parts = content.split('---')
-    
-    # Metadata
-    md = markdown.Markdown(extensions=['meta'])
-    md.convert(parts[1])
-    metadata = md.meta
-    
-    # Main content
-    main_content = parts[2].strip()
-    scenario_question_split = main_content.split('### Question')
-    scenario = scenario_question_split[0].replace('### Scenario', '').strip()
-    question = scenario_question_split[1].strip()
-
-    # Rubric and Follow-up
-    rubric_followup_split = parts[3].strip().split('### Follow-up Guidance')
-    rubric_text = rubric_followup_split[0].replace('### Evaluation Rubric', '').strip()
-    follow_up = rubric_followup_split[1].strip() if len(rubric_followup_split) > 1 else ""
-
-    # Parse rubric
-    ideal_concepts_split = rubric_text.split('#### Dangerous Misconceptions:')
-    ideal_concepts = ideal_concepts_split[0].replace('#### Ideal Concepts to Mention:', '').strip()
-    dangerous_misconceptions = ideal_concepts_split[1].strip()
-
+def get_default_question():
+    """Returns a default question when parsing fails."""
     return {
-        'id': metadata.get('id', [None])[0],
-        'category': metadata.get('category', ["General"])[0],
-        'scenario': scenario,
-        'question': question,
-        'evaluation_rubric': {
-            'ideal_concepts': ideal_concepts,
-            'dangerous_misconceptions': dangerous_misconceptions
+        "id": 0,
+        "category": "General",
+        "scenario": "Sample Scenario",
+        "question": "What would you do in this situation?",
+        "evaluation_rubric": {
+            "ideal_concepts": "Think about safety first.",
+            "dangerous_misconceptions": "Avoid taking risks."
         },
-        'follow_up_guidance': follow_up
+        "follow_up_guidance": ""
     }
 
 def load_questions(questions_dir="questions", num_questions=4):

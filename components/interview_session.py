@@ -20,7 +20,7 @@ def run_interview_session():
         # Interview finished, generate report and go to results
         with st.spinner("Generating your final preparedness report..."):
             st.session_state.final_report = generate_final_report(st.session_state.evaluation_results)
-        st.switch_page("pages/2_Results.py")
+        st.switch_page("2_Results")
         return
 
     current_question = questions[q_index]
