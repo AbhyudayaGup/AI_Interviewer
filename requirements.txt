@@ -3,6 +3,10 @@ streamlit-extras
 sentence-transformers
 transformers
 langchain
+langchain-core
+langchain-community
+langchain-groq
+langchain-huggingface
 chromadb
 faiss-cpu
 huggingface-hub
