@@ -19,7 +19,7 @@ def main():
                 <h1 class="hero-title">TSRS Moulsari — Disaster Preparedness Evaluator</h1>
                 <p class="hero-sub">Realistic scenario interviews that assess readiness and provide actionable feedback.</p>
                 <div class="hero-cta">
-                    <a class="cta-button" href="/Interview">Start Preparedness Evaluation</a>
+                    <!-- Placeholder for button - will use st.page_link below -->
                 </div>
                 <p class="hero-note">Voice-based interview • Secure • School-specific guidance</p>
             </div>
@@ -27,6 +27,9 @@ def main():
         '''
 
         st.markdown(hero_html, unsafe_allow_html=True)
+        
+        # Use st.page_link for same-page navigation within Streamlit
+        st.page_link("pages/1_Interview.py", label="🚀 Start Preparedness Evaluation", icon="▶️")
 
 
 if __name__ == "__main__":

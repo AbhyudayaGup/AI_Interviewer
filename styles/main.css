@@ -1,10 +1,21 @@
 /* styles.css */
 
-/* General Body Styles */
-body {
-    font-family: 'sans serif';
+/* Full page background - dark theme throughout */
+html, body {
+    background-color: #0E1117 !important;
     color: #FAFAFA;
-    background-color: #0E1117;
+    font-family: 'sans serif';
+    margin: 0;
+    padding: 0;
+}
+
+/* Streamlit specific - apply dark background to all containers */
+[data-testid="stAppViewContainer"] {
+    background-color: #0E1117 !important;
+}
+
+[data-testid="stMain"] {
+    background-color: #0E1117 !important;
 }
 
 /* Main container */
@@ -13,6 +24,7 @@ body {
     padding-bottom: 2rem;
     padding-left: 5rem;
     padding-right: 5rem;
+    background-color: transparent !important;
 }
 
 /* Custom Title */

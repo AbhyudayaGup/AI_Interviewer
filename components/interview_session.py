@@ -2,6 +2,7 @@ import streamlit as st
 import time
 from questions.question_loader import load_questions
 from audio.recorder import record_audio_non_blocking
+import audio.recorder as recorder
 from audio.transcriber import transcribe_audio
 from ai.evaluator import evaluate_response
 from analytics.report_generator import generate_final_report
@@ -35,45 +36,96 @@ def run_interview_session():
     # Voice Interaction
     st.write("Click the button and speak your answer.")
     
-    # Initialize recording flag if not exists
-    if 'is_recording' not in st.session_state:
-        st.session_state.is_recording = False
-    
-    # Record button
-    if st.button("🎤 Record Answer", key=f"record_{q_index}", disabled=st.session_state.is_recording):
-        st.session_state.is_recording = True
-        st.session_state.stop_recording = False
-        st.rerun()
-    
-    # Stop button (only show when recording)
-    if st.session_state.is_recording:
-        if st.button("⏹️ Stop Recording", key=f"stop_{q_index}"):
-            st.session_state.stop_recording = True
+    # Initialize recording state dict for this session
+    if 'recording_state' not in st.session_state:
+        st.session_state.recording_state = {}
+
+    recording_key = f"q_{q_index}"
+    rec_state = st.session_state.recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
+
+    # Start recording
+    if rec_state["status"] == "idle":
+        if st.button("🎤 Record Answer", key=f"record_{q_index}"):
+            # Kick off non-blocking recording
+            try:
+                recorder.record_audio_non_blocking(max_duration=15)
+            except Exception as e:
+                st.error(f"Could not start recording: {e}")
+                return
+            rec_state["status"] = "recording"
+            rec_state["start_time"] = time.time()
+            st.session_state.recording_state[recording_key] = rec_state
             st.rerun()
-    
-    # Perform actual recording if flag is set
-    if st.session_state.is_recording and 'transcript' not in st.session_state:
-        with st.spinner("Recording... Click 'Stop Recording' to end early or wait for 15 seconds."):
-            audio_file = record_audio_non_blocking(max_duration=15)
-        
-        if audio_file:
-            with st.spinner("Transcribing your answer..."):
-                transcript = transcribe_audio(audio_file)
-            st.session_state.transcript = transcript
-        
-        st.session_state.is_recording = False
-        st.rerun()
+
+    # Recording UI and stop control
+    if rec_state["status"] == "recording":
+        elapsed = time.time() - (rec_state.get("start_time") or time.time())
+        max_duration = 15
+        # Show recording message
+        st.info(f"🔴 Recording... {int(max_duration - elapsed)}s remaining. Click 'Stop Recording' to finish early.")
+
+        if st.button("⏹️ Stop Recording", key=f"stop_{q_index}"):
+            try:
+                recorder.set_stop_flag()
+            except Exception:
+                # Best-effort: set a fallback session flag
+                st.session_state.stop_recording = True
+
+            rec_state["status"] = "stopping"
+            st.session_state.recording_state[recording_key] = rec_state
+            st.rerun()
+
+        # Auto-timeout handling: if recorder reports stopped or elapsed > max, move on
+        if elapsed > max_duration or (not recorder.is_recording() and rec_state["status"] == "recording"):
+            rec_state["status"] = "stopping"
+            st.session_state.recording_state[recording_key] = rec_state
+            st.rerun()
+
+    # Finalize recording: save file and transcribe
+    if rec_state["status"] == "stopping":
+        with st.spinner("Finalizing recording and transcribing..."):
+            audio_path = recorder.save_recording()
+            if not audio_path:
+                st.error("Failed to save recording. Please try again.")
+                rec_state["status"] = "idle"
+                st.session_state.recording_state[recording_key] = rec_state
+                st.rerun()
+                return
+
+            # Transcribe
+            transcript = transcribe_audio(audio_path)
+            if transcript and not transcript.startswith("Error"):
+                st.session_state.transcript = transcript
+                rec_state["status"] = "done"
+                rec_state["audio_path"] = audio_path
+                st.session_state.recording_state[recording_key] = rec_state
+                st.rerun()
+                return
+            else:
+                st.error("No speech detected or transcription failed. Please try again.")
+                rec_state["status"] = "idle"
+                st.session_state.recording_state[recording_key] = rec_state
+                st.rerun()
+                return
 
     # Display and allow editing of transcript
     if 'transcript' in st.session_state:
-        edited_transcript = st.text_area("Your transcribed answer (edit if needed):", st.session_state.transcript, height=150)
+        st.success("✓ Recording transcribed successfully")
+        edited_transcript = st.text_area("Your transcribed answer (edit if needed):", st.session_state.transcript, height=150, key=f"textarea_{q_index}")
 
         if st.button("Submit Answer", key=f"submit_{q_index}"):
-            with st.spinner("AI is evaluating your response..."):
-                evaluation = evaluate_response(current_question, edited_transcript)
-                st.session_state.evaluation_results.append(evaluation)
-            
-            # Move to next question
-            st.session_state.question_index += 1
-            del st.session_state.transcript # Clear transcript for next question
-            st.rerun()
+            if not edited_transcript or len(edited_transcript.strip()) == 0:
+                st.error("Please provide an answer before submitting.")
+            else:
+                with st.spinner("AI is evaluating your response..."):
+                    evaluation = evaluate_response(current_question, edited_transcript)
+                    st.session_state.evaluation_results.append(evaluation)
+                
+                # Clear state for this question and move to next
+                if 'transcript' in st.session_state:
+                    del st.session_state.transcript
+                if recording_key in st.session_state.recording_state:
+                    del st.session_state.recording_state[recording_key]
+                
+                st.session_state.question_index += 1
+                st.rerun()

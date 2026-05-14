@@ -3,78 +3,116 @@ import sounddevice as sd
 import numpy as np
 from scipy.io.wavfile import write
 import tempfile
-import os
 import threading
+import time
 
-# Configuration
-SAMPLE_RATE = 16000  # 16kHz is standard for speech recognition
+# --- Configuration ---
+SAMPLE_RATE = 16000  # 16kHz, standard for speech recognition
 CHANNELS = 1
 FILENAME_PREFIX = "user_audio_"
 
+# --- Thread-Safe State Management ---
+# Using a class to hold state is cleaner than global variables and ensures
+# that each recording session has its own state.
+class RecorderState:
+    def __init__(self):
+        self.audio_buffer = []
+        self.is_recording = False
+        self.stop_requested = False
+        self.lock = threading.Lock()
+
+    def start(self):
+        with self.lock:
+            self.is_recording = True
+            self.stop_requested = False
+            self.audio_buffer = []
+
+    def stop(self):
+        with self.lock:
+            self.is_recording = False
+            self.stop_requested = True
+
+    def add_data(self, data):
+        if self.is_recording:
+            self.audio_buffer.append(data)
+
+    def get_data(self):
+        with self.lock:
+            return np.concatenate(self.audio_buffer, axis=0) if self.audio_buffer else np.array([])
+
+# A single, shared state object for the recorder
+recorder_state = RecorderState()
+
+def set_stop_flag():
+    """Public function to signal the recording thread to stop."""
+    recorder_state.stop()
+    print("Stop flag has been set.")
+
+def is_recording():
+    """Public function to check if recording is active."""
+    return recorder_state.is_recording
+
 def record_audio_non_blocking(max_duration=15, sample_rate=SAMPLE_RATE):
     """
-    Records audio from the microphone with support for early stopping via a flag.
-    Uses InputStream callback to continuously capture audio while checking st.session_state.stop_recording.
-    Automatically stops after max_duration seconds.
-    
-    Args:
-        max_duration (int): The maximum recording duration in seconds.
-        sample_rate (int): The sample rate.
-        
-    Returns:
-        str: The path to the saved WAV file, or None if recording failed.
+    Records audio in a non-blocking way using a dedicated thread.
+    Communicates start/stop via a thread-safe state object.
     """
-    try:
-        # Initialize stop flag
-        if 'stop_recording' not in st.session_state:
-            st.session_state.stop_recording = False
+    
+    def audio_callback(indata, frames, time_info, status):
+        """This is called from the sounddevice thread for each audio chunk."""
+        if status:
+            print(f"Audio callback status: {status}")
+        recorder_state.add_data(indata.copy())
+
+    def recording_thread_main():
+        """The main logic for the recording thread."""
+        recorder_state.start()
         
-        # Prepare audio buffer
-        max_samples = int(max_duration * sample_rate)
-        audio_buffer = np.zeros((max_samples, CHANNELS), dtype='int16')
-        recorded_samples = [0]  # Use list to allow modification in nested function
-        
-        def audio_callback(indata, frames, time_info, status):
-            """Callback for InputStream - copies audio to buffer."""
-            if status:
-                print(f"Audio callback status: {status}")
-            
-            # Stop if buffer is full or stop flag is set
-            if recorded_samples[0] >= max_samples or st.session_state.stop_recording:
-                raise sd.CallbackStop()
-            
-            # Copy audio data to buffer
-            chunk_size = min(frames, max_samples - recorded_samples[0])
-            audio_buffer[recorded_samples[0]:recorded_samples[0] + chunk_size] = indata[:chunk_size]
-            recorded_samples[0] += chunk_size
-        
-        # Record using InputStream with callback - it will stop when buffer is full or callback raises CallbackStop
         try:
-            with sd.InputStream(channels=CHANNELS, samplerate=sample_rate, callback=audio_callback, blocksize=2048):
-                # Wait for recording to complete (callback will raise CallbackStop when done)
-                # This loop is just a safety net; the callback controls the stop
-                sd.sleep(max_duration * 1000)  # Sleep for max_duration milliseconds
-        except Exception as stream_error:
-            print(f"InputStream error: {stream_error}")
-        
-        # Extract only the recorded portion
-        actual_recording = audio_buffer[:recorded_samples[0]]
-        
-        # Save the recording to a temporary WAV file
-        if recorded_samples[0] > 0:
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav", prefix=FILENAME_PREFIX)
-            write(temp_file.name, sample_rate, actual_recording)
-            return temp_file.name
-        else:
-            st.error("No audio was recorded.")
-            return None
-        
-    except Exception as e:
-        st.error(f"Could not record audio. Please ensure your microphone is connected and permissions are granted. Error: {e}")
+            with sd.InputStream(samplerate=sample_rate, channels=CHANNELS, callback=audio_callback):
+                start_time = time.time()
+                while time.time() - start_time < max_duration:
+                    if recorder_state.stop_requested:
+                        print("Stop requested, breaking from recording loop.")
+                        break
+                    time.sleep(0.1) # Polling interval
+        except Exception as e:
+            st.error(f"An error occurred during recording: {e}")
+            print(f"Error in recording thread: {e}")
+        finally:
+            # Always ensure the state is updated to 'not recording'
+            print("Recording thread finished. Setting is_recording to False.")
+            recorder_state.stop()
+
+    # Start the recording in a background thread
+    thread = threading.Thread(target=recording_thread_main, daemon=True)
+    thread.start()
+    
+    # The main Streamlit thread does not wait/join. It just kicks off the recording.
+    # The state is managed by the UI polling the `is_recording()` function.
+    return True
+
+
+def save_recording(sample_rate=SAMPLE_RATE):
+    """
+    Saves the content of the audio buffer to a temporary WAV file.
+    This should be called after the recording has stopped.
+    """
+    audio_data = recorder_state.get_data()
+
+    if audio_data.size == 0:
+        st.warning("No audio was recorded. The microphone might not have captured any sound.")
         return None
-    finally:
-        # Reset the stop flag
-        st.session_state.stop_recording = False
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav", prefix=FILENAME_PREFIX) as temp_file:
+            write(temp_file.name, sample_rate, audio_data)
+            print(f"Audio successfully saved to {temp_file.name}")
+            return temp_file.name
+    except Exception as e:
+        st.error(f"Failed to save the recorded audio. Error: {e}")
+        print(f"Error saving WAV file: {e}")
+        return None
 
 
 def record_audio(duration=15, sample_rate=SAMPLE_RATE):
