@@ -16,6 +16,8 @@ def run_interview_session():
     # normal interview flow
     if 'questions' not in st.session_state:
         st.session_state.questions = load_questions(num_questions=4)
+    if 'recording_state' not in st.session_state:
+        st.session_state.recording_state = {}
     
     questions = st.session_state.questions
     q_index = st.session_state.get('question_index', 0)
@@ -37,17 +39,11 @@ def run_interview_session():
 
     # Voice Interaction
     recording_key = f"q_{q_index}"
-    rec_state = {"status": "idle"}
+    rec_state = st.session_state.recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
     audio_supported = recorder.can_use_microphone()
 
     if audio_supported:
         st.write("Click the button and speak your answer.")
-        
-        # Initialize recording state dict for this session
-        if 'recording_state' not in st.session_state:
-            st.session_state.recording_state = {}
-
-        rec_state = st.session_state.recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
 
         # Start recording
         if rec_state["status"] == "idle":
@@ -62,10 +58,19 @@ def run_interview_session():
                 st.session_state.recording_state[recording_key] = rec_state
                 st.rerun()
     else:
-        st.warning(
-            "Microphone recording is unavailable on deployed Streamlit. "
-            "Please type your answer below or upload a recorded audio file."
-        )
+        st.info("Use the browser recorder below to grant microphone permission, or upload a recorded file.")
+        browser_audio = st.audio_input("Record your answer", key=f"browser_audio_{q_index}")
+        if browser_audio is not None:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+                temp_audio.write(browser_audio.read())
+                temp_audio_path = temp_audio.name
+            transcript = transcribe_audio(temp_audio_path)
+            if transcript and not transcript.startswith("Error"):
+                st.session_state.transcript = transcript
+                st.success("Browser audio transcribed successfully.")
+            else:
+                st.error("Transcription failed. Please try again or type your answer manually.")
+
         uploaded_file = st.file_uploader(
             "Upload your recorded answer (optional)",
             type=["wav", "mp3", "m4a"],
@@ -158,7 +163,7 @@ def run_interview_session():
                 # Clear state for this question and move to next
                 if 'transcript' in st.session_state:
                     del st.session_state.transcript
-                if recording_key in st.session_state.recording_state:
+                if 'recording_state' in st.session_state and recording_key in st.session_state.recording_state:
                     del st.session_state.recording_state[recording_key]
                 
                 st.session_state.question_index += 1
