@@ -53,10 +53,9 @@ def run_interview_session():
         if rec_state["status"] == "idle":
             if st.button("🎤 Record Answer", key=f"record_{q_index}"):
                 # Kick off non-blocking recording
-                try:
-                    recorder.record_audio_non_blocking(max_duration=15)
-                except Exception as e:
-                    st.error(f"Could not start recording: {e}")
+                recorded = recorder.record_audio_non_blocking(max_duration=15)
+                if not recorded:
+                    st.error("Microphone recording is unavailable on this platform.")
                     return
                 rec_state["status"] = "recording"
                 rec_state["start_time"] = time.time()
@@ -89,7 +88,6 @@ def run_interview_session():
             key=f"manual_{q_index}",
             height=200
         )
-        st.session_state[f"manual_{q_index}"] = manual_answer
         if manual_answer and manual_answer.strip():
             st.session_state.transcript = manual_answer
 

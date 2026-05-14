@@ -1,5 +1,4 @@
 import streamlit as st
-import sounddevice as sd
 import numpy as np
 from scipy.io.wavfile import write
 import tempfile
@@ -10,6 +9,15 @@ import time
 SAMPLE_RATE = 16000  # 16kHz, standard for speech recognition
 CHANNELS = 1
 FILENAME_PREFIX = "user_audio_"
+
+
+def _get_sounddevice():
+    try:
+        import sounddevice as sd
+        return sd
+    except Exception as e:
+        print(f"sounddevice import failure: {e}")
+        return None
 
 # --- Thread-Safe State Management ---
 # Using a class to hold state is cleaner than global variables and ensures
@@ -54,6 +62,10 @@ def is_recording():
 
 def can_use_microphone():
     """Return True if a local audio input device is available."""
+    sd = _get_sounddevice()
+    if sd is None:
+        return False
+
     try:
         devices = sd.query_devices()
         if not devices:
@@ -85,6 +97,11 @@ def record_audio_non_blocking(max_duration=15, sample_rate=SAMPLE_RATE):
             print(f"Audio callback status: {status}")
         recorder_state.add_data(indata.copy())
 
+    sd = _get_sounddevice()
+    if sd is None:
+        print("No sounddevice available for microphone recording.")
+        return False
+
     def recording_thread_main():
         """The main logic for the recording thread."""
         recorder_state.start()
@@ -98,7 +115,6 @@ def record_audio_non_blocking(max_duration=15, sample_rate=SAMPLE_RATE):
                         break
                     time.sleep(0.1) # Polling interval
         except Exception as e:
-            st.error(f"An error occurred during recording: {e}")
             print(f"Error in recording thread: {e}")
         finally:
             # Always ensure the state is updated to 'not recording'
