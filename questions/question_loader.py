@@ -100,7 +100,8 @@ def load_questions(questions_dir="questions", num_questions=4):
     """
     Loads, parses, and randomly selects a number of questions from the questions directory.
     """
-    all_question_files = glob.glob(os.path.join(questions_dir, "*.md"))
+    # Find all markdown files but exclude any flood-related questions
+    all_question_files = [f for f in glob.glob(os.path.join(questions_dir, "*.md")) if 'flood' not in os.path.basename(f).lower()]
     
     if not all_question_files:
         # Return a default question if none are found

@@ -1,6 +1,6 @@
 # TSRS Moulsari AI Disaster Preparedness Evaluator
 
-This AI-powered system evaluates how prepared students are to respond during emergencies and disaster situations at The Shri Ram School Moulsari. The interview simulates realistic scenarios such as earthquakes, fires, cybersecurity incidents, lockdowns, floods, and emergency evacuations. Based on your responses, the AI estimates your preparedness level and provides personalized feedback.
+This AI-powered system evaluates how prepared students are to respond during emergencies and disaster situations at The Shri Ram School Moulsari. The interview simulates realistic scenarios such as earthquakes, fires, cybersecurity incidents, lockdowns, and emergency evacuations. Based on your responses, the AI estimates your preparedness level and provides personalized feedback.
 
 ## Getting Started
 
