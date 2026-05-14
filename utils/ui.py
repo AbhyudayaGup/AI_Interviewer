@@ -8,12 +8,8 @@ def load_css(file_name):
 
 def setup_page(title):
     """Configures the page with a title and loads custom CSS."""
-    # If a favicon exists in assets, use it for the page icon in Streamlit
-    favicon_path = os.path.join("assets", "favicon.png")
-    if os.path.exists(favicon_path):
-        st.set_page_config(page_title=title, page_icon=favicon_path, layout="wide", initial_sidebar_state="collapsed")
-    else:
-        st.set_page_config(page_title=title, layout="wide", initial_sidebar_state="collapsed")
+    # Use an emoji icon (Streamlit page_icon must be emoji or emoji code)
+    st.set_page_config(page_title=title, page_icon="🛡️", layout="wide", initial_sidebar_state="collapsed")
     
     # Load custom CSS
     css_file = os.path.join("styles", "main.css")

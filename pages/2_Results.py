@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from utils.ui import setup_page, display_header
+from utils.ui import setup_page, display_header, display_footer
 from analytics.report_generator import generate_final_report
 
 def results_page():
@@ -81,6 +81,9 @@ def results_page():
         # Redirect to the home page root
         components.html('<script>window.location.href = "/"</script>', height=0)
         return
+
+    # Display footer
+    display_footer()
 
 
 if __name__ == "__main__":

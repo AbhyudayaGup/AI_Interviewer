@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.ui import setup_page, display_header
+from utils.ui import setup_page, display_header, display_footer
 from components.interview_session import run_interview_session
 
 def interview_page():
@@ -22,6 +22,8 @@ def interview_page():
         st.session_state.recording_state = {}
 
     run_interview_session()
-
+    
+    # Display footer
+    display_footer()
 if __name__ == "__main__":
     interview_page()
