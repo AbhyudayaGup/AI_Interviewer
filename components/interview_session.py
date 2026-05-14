@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 from questions.question_loader import load_questions
-from audio.recorder import record_audio
+from audio.recorder import record_audio_non_blocking
 from audio.transcriber import transcribe_audio
 from ai.evaluator import evaluate_response
 from analytics.report_generator import generate_final_report
@@ -34,16 +34,35 @@ def run_interview_session():
 
     # Voice Interaction
     st.write("Click the button and speak your answer.")
-    # Allow user to choose a recording length (1-15s); this also provides an "end early" option
-    max_length = st.slider("Recording length (seconds)", min_value=1, max_value=15, value=15, help="Choose a shorter length to end the recording early.")
-
-    if st.button("Record Answer", key=f"record_{q_index}"):
-        with st.spinner("Recording..."):
-            audio_file = record_audio(duration=max_length)
+    
+    # Initialize recording flag if not exists
+    if 'is_recording' not in st.session_state:
+        st.session_state.is_recording = False
+    
+    # Record button
+    if st.button("🎤 Record Answer", key=f"record_{q_index}", disabled=st.session_state.is_recording):
+        st.session_state.is_recording = True
+        st.session_state.stop_recording = False
+        st.rerun()
+    
+    # Stop button (only show when recording)
+    if st.session_state.is_recording:
+        if st.button("⏹️ Stop Recording", key=f"stop_{q_index}"):
+            st.session_state.stop_recording = True
+            st.rerun()
+    
+    # Perform actual recording if flag is set
+    if st.session_state.is_recording and 'transcript' not in st.session_state:
+        with st.spinner("Recording... Click 'Stop Recording' to end early or wait for 15 seconds."):
+            audio_file = record_audio_non_blocking(max_duration=15)
+        
         if audio_file:
             with st.spinner("Transcribing your answer..."):
                 transcript = transcribe_audio(audio_file)
             st.session_state.transcript = transcript
+        
+        st.session_state.is_recording = False
+        st.rerun()
 
     # Display and allow editing of transcript
     if 'transcript' in st.session_state:
