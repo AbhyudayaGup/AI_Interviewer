@@ -52,11 +52,32 @@ def is_recording():
     """Public function to check if recording is active."""
     return recorder_state.is_recording
 
+def can_use_microphone():
+    """Return True if a local audio input device is available."""
+    try:
+        devices = sd.query_devices()
+        if not devices:
+            return False
+        for dev in devices:
+            if isinstance(dev, dict):
+                if dev.get("max_input_channels", 0) > 0:
+                    return True
+            elif len(dev) > 3 and dev[3] > 0:
+                return True
+        return False
+    except Exception as e:
+        print(f"Microphone detection error: {e}")
+        return False
+
+
 def record_audio_non_blocking(max_duration=15, sample_rate=SAMPLE_RATE):
     """
     Records audio in a non-blocking way using a dedicated thread.
     Communicates start/stop via a thread-safe state object.
     """
+    if not can_use_microphone():
+        print("No microphone input device is available.")
+        return False
     
     def audio_callback(indata, frames, time_info, status):
         """This is called from the sounddevice thread for each audio chunk."""

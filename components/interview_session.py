@@ -1,3 +1,5 @@
+import os
+import tempfile
 import streamlit as st
 import time
 from questions.question_loader import load_questions
@@ -34,28 +36,62 @@ def run_interview_session():
     st.write(current_question['question'])
 
     # Voice Interaction
-    st.write("Click the button and speak your answer.")
-    
-    # Initialize recording state dict for this session
-    if 'recording_state' not in st.session_state:
-        st.session_state.recording_state = {}
-
     recording_key = f"q_{q_index}"
-    rec_state = st.session_state.recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
+    rec_state = {"status": "idle"}
+    audio_supported = recorder.can_use_microphone()
 
-    # Start recording
-    if rec_state["status"] == "idle":
-        if st.button("🎤 Record Answer", key=f"record_{q_index}"):
-            # Kick off non-blocking recording
-            try:
-                recorder.record_audio_non_blocking(max_duration=15)
-            except Exception as e:
-                st.error(f"Could not start recording: {e}")
-                return
-            rec_state["status"] = "recording"
-            rec_state["start_time"] = time.time()
-            st.session_state.recording_state[recording_key] = rec_state
-            st.rerun()
+    if audio_supported:
+        st.write("Click the button and speak your answer.")
+        
+        # Initialize recording state dict for this session
+        if 'recording_state' not in st.session_state:
+            st.session_state.recording_state = {}
+
+        rec_state = st.session_state.recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
+
+        # Start recording
+        if rec_state["status"] == "idle":
+            if st.button("🎤 Record Answer", key=f"record_{q_index}"):
+                # Kick off non-blocking recording
+                try:
+                    recorder.record_audio_non_blocking(max_duration=15)
+                except Exception as e:
+                    st.error(f"Could not start recording: {e}")
+                    return
+                rec_state["status"] = "recording"
+                rec_state["start_time"] = time.time()
+                st.session_state.recording_state[recording_key] = rec_state
+                st.rerun()
+    else:
+        st.warning(
+            "Microphone recording is unavailable on deployed Streamlit. "
+            "Please type your answer below or upload a recorded audio file."
+        )
+        uploaded_file = st.file_uploader(
+            "Upload your recorded answer (optional)",
+            type=["wav", "mp3", "m4a"],
+            key=f"upload_{q_index}"
+        )
+        if uploaded_file is not None:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as temp_audio:
+                temp_audio.write(uploaded_file.read())
+                temp_audio_path = temp_audio.name
+            transcript = transcribe_audio(temp_audio_path)
+            if transcript and not transcript.startswith("Error"):
+                st.session_state.transcript = transcript
+                st.success("Uploaded audio transcribed successfully.")
+            else:
+                st.error("Transcription failed. Please try another file or type your answer manually.")
+
+        manual_answer = st.text_area(
+            "Type your answer here:",
+            value=st.session_state.get(f"manual_{q_index}", ""),
+            key=f"manual_{q_index}",
+            height=200
+        )
+        st.session_state[f"manual_{q_index}"] = manual_answer
+        if manual_answer and manual_answer.strip():
+            st.session_state.transcript = manual_answer
 
     # Recording UI and stop control
     if rec_state["status"] == "recording":
