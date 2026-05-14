@@ -18,6 +18,7 @@ def run_interview_session():
         st.session_state.questions = load_questions(num_questions=4)
     if 'recording_state' not in st.session_state:
         st.session_state.recording_state = {}
+    recording_state = st.session_state.get('recording_state', {})
     
     questions = st.session_state.questions
     q_index = st.session_state.get('question_index', 0)
@@ -39,7 +40,7 @@ def run_interview_session():
 
     # Voice Interaction
     recording_key = f"q_{q_index}"
-    rec_state = st.session_state.recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
+    rec_state = recording_state.get(recording_key, {"status": "idle", "start_time": None, "audio_path": None})
     audio_supported = recorder.can_use_microphone()
 
     if audio_supported:
@@ -55,7 +56,8 @@ def run_interview_session():
                     return
                 rec_state["status"] = "recording"
                 rec_state["start_time"] = time.time()
-                st.session_state.recording_state[recording_key] = rec_state
+                recording_state[recording_key] = rec_state
+                st.session_state.recording_state = recording_state
                 st.rerun()
     else:
         st.info("Use the browser recorder below to grant microphone permission, or upload a recorded file.")
@@ -111,13 +113,15 @@ def run_interview_session():
                 st.session_state.stop_recording = True
 
             rec_state["status"] = "stopping"
-            st.session_state.recording_state[recording_key] = rec_state
+            recording_state[recording_key] = rec_state
+            st.session_state.recording_state = recording_state
             st.rerun()
 
         # Auto-timeout handling: if recorder reports stopped or elapsed > max, move on
         if elapsed > max_duration or (not recorder.is_recording() and rec_state["status"] == "recording"):
             rec_state["status"] = "stopping"
-            st.session_state.recording_state[recording_key] = rec_state
+            recording_state[recording_key] = rec_state
+            st.session_state.recording_state = recording_state
             st.rerun()
 
     # Finalize recording: save file and transcribe
@@ -127,7 +131,8 @@ def run_interview_session():
             if not audio_path:
                 st.error("Failed to save recording. Please try again.")
                 rec_state["status"] = "idle"
-                st.session_state.recording_state[recording_key] = rec_state
+                recording_state[recording_key] = rec_state
+                st.session_state.recording_state = recording_state
                 st.rerun()
                 return
 
@@ -137,13 +142,15 @@ def run_interview_session():
                 st.session_state.transcript = transcript
                 rec_state["status"] = "done"
                 rec_state["audio_path"] = audio_path
-                st.session_state.recording_state[recording_key] = rec_state
+                recording_state[recording_key] = rec_state
+                st.session_state.recording_state = recording_state
                 st.rerun()
                 return
             else:
                 st.error("No speech detected or transcription failed. Please try again.")
                 rec_state["status"] = "idle"
-                st.session_state.recording_state[recording_key] = rec_state
+                recording_state[recording_key] = rec_state
+                st.session_state.recording_state = recording_state
                 st.rerun()
                 return
 
@@ -163,8 +170,9 @@ def run_interview_session():
                 # Clear state for this question and move to next
                 if 'transcript' in st.session_state:
                     del st.session_state.transcript
-                if 'recording_state' in st.session_state and recording_key in st.session_state.recording_state:
-                    del st.session_state.recording_state[recording_key]
+                if recording_key in recording_state:
+                    del recording_state[recording_key]
+                    st.session_state.recording_state = recording_state
                 
                 st.session_state.question_index += 1
                 st.rerun()
