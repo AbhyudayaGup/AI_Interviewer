@@ -1,10 +1,9 @@
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import os
-from dotenv import load_dotenv
+from utils.secrets import load_dotenv_and_streamlit_secrets
 
-load_dotenv()
+load_dotenv_and_streamlit_secrets()
 
 def get_llm():
     """Initializes and returns the LLM instance."""

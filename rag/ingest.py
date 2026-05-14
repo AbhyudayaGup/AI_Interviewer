@@ -1,12 +1,12 @@
 import os
 import argparse
-from dotenv import load_dotenv
+from utils.secrets import load_dotenv_and_streamlit_secrets
 from rag.document_loader import load_documents
 from rag.text_splitter import split_documents
 from rag.vector_store import create_vector_store
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file and Streamlit secrets if available
+load_dotenv_and_streamlit_secrets()
 
 def main():
     """
