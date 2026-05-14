@@ -34,9 +34,12 @@ def run_interview_session():
 
     # Voice Interaction
     st.write("Click the button and speak your answer.")
+    # Allow user to choose a recording length (1-15s); this also provides an "end early" option
+    max_length = st.slider("Recording length (seconds)", min_value=1, max_value=15, value=15, help="Choose a shorter length to end the recording early.")
+
     if st.button("Record Answer", key=f"record_{q_index}"):
         with st.spinner("Recording..."):
-            audio_file = record_audio()
+            audio_file = record_audio(duration=max_length)
         if audio_file:
             with st.spinner("Transcribing your answer..."):
                 transcript = transcribe_audio(audio_file)

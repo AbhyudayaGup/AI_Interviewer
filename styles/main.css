@@ -87,3 +87,44 @@ div[data-testid="stMetric"] > div[data-testid="stMetricValue"] {
     font-size: 2.5rem;
     font-weight: 700;
 }
+
+/* Hero Section */
+.hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    background: linear-gradient(135deg, #071029 0%, #0e1522 50%, #071029 100%);
+    border-radius: 20px;
+    margin-bottom: 2rem;
+}
+.hero-content {
+    text-align: center;
+    max-width: 1000px;
+    color: #E6F3FF;
+}
+.hero-title {
+    font-size: 3rem;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(90deg, #6EE7B7, #3B82F6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.hero-sub {
+    font-size: 1.1rem;
+    color: #B8D8FF;
+    margin-bottom: 1.25rem;
+}
+.hero-cta .cta-button {
+    display: inline-block;
+    background: linear-gradient(90deg,#00C2FF,#4C1D95);
+    color: white !important;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 30px rgba(76,29,149,0.35);
+    transition: transform 0.12s ease-in-out, box-shadow 0.12s ease-in-out;
+}
+.hero-cta .cta-button:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(76,29,149,0.45); }
+.hero-note { color: #9fb8d9; font-size: 0.95rem; margin-top: 0.75rem; }

@@ -1,21 +1,33 @@
 import streamlit as st
-from utils.ui import setup_page, display_header, display_welcome_message
+from utils.ui import setup_page, display_header
+
 
 def main():
-    """
-    Main function for the welcome page of the application.
-    """
-    setup_page("TSRS Moulsari AI Disaster Preparedness Evaluator")
+        """
+        Main function for the welcome page of the application.
+        Renders a modern hero with a primary CTA to begin the evaluation.
+        """
+        setup_page("TSRS Moulsari AI Disaster Preparedness Evaluator")
 
-    display_header()
-    display_welcome_message()
+        # Minimal header (title is handled by CSS)
+        display_header(show_title=False)
 
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        st.page_link("pages/1_Interview.py", label="🎤 Start Preparedness Evaluation", icon="▶️")
+        # Hero section built with HTML for a modern look
+        hero_html = '''
+        <div class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">TSRS Moulsari — Disaster Preparedness Evaluator</h1>
+                <p class="hero-sub">Realistic scenario interviews that assess readiness and provide actionable feedback.</p>
+                <div class="hero-cta">
+                    <a class="cta-button" href="/Interview">Start Preparedness Evaluation</a>
+                </div>
+                <p class="hero-note">Voice-based interview • Secure • School-specific guidance</p>
+            </div>
+        </div>
+        '''
 
-    # You can add more elements to the welcome page here
-    # For example, a brief overview of the process or some graphics.
+        st.markdown(hero_html, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
-    main()
+        main()

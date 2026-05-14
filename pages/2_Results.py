@@ -77,7 +77,10 @@ def results_page():
         # Clear session state to allow for a new interview
         for key in list(st.session_state.keys()):
             del st.session_state[key]
-        st.switch_page("app")
+        import streamlit.components.v1 as components
+        # Redirect to the home page root
+        components.html('<script>window.location.href = "/"</script>', height=0)
+        return
 
 
 if __name__ == "__main__":
@@ -95,7 +98,7 @@ if __name__ == "__main__":
             },
             'strengths': "Excellent awareness of immediate safety protocols and maintaining a calm demeanor.",
             'weaknesses': "Could improve on specific communication protocols and remembering exact evacuation routes.",
-            'recommendations': "Review the school's communication tree for emergencies. Take a walk along the primary and secondary evacuation routes from your most frequent locations.",
+            'recommendations': "Review the school's emergency contact list for emergencies. Take a walk along the primary and secondary evacuation routes from your most frequent locations.",
             'misconceptions_detected': ["Mentioned using an elevator during a fire alarm, which is extremely dangerous."]
         }
     results_page()

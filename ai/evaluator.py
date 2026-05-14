@@ -60,7 +60,8 @@ def evaluate_response(question_data, user_response):
             "strengths": "<strengths_summary>",
             "weaknesses": "<weaknesses_summary>",
             "misconceptions_detected": ["<misconception_1>", "<misconception_2>"],
-            "overall_score": <score_0_100>
+            "overall_score": <score_0_100>,
+            "follow_up_guidance": "<follow_up_guidance>"
         }}
         """
     )
@@ -72,7 +73,8 @@ def evaluate_response(question_data, user_response):
         "question": question_data['question'],
         "ideal_concepts": question_data['evaluation_rubric']['ideal_concepts'],
         "dangerous_misconceptions": question_data['evaluation_rubric']['dangerous_misconceptions'],
-        "user_response": user_response
+        "user_response": user_response,
+        "follow_up_guidance": question_data.get('follow_up_guidance', '')
     })
     
     try:
@@ -83,6 +85,30 @@ def evaluate_response(question_data, user_response):
         clean_json_str = response_str[json_start:json_end]
         evaluation = json.loads(clean_json_str)
         evaluation['category'] = question_data['category'] # Add category for final report
+        # Also include any follow-up guidance from the question metadata
+        evaluation['follow_up_guidance'] = question_data.get('follow_up_guidance', '')
+
+        # Sanitize any undesired phrases (e.g., "communication tree") from text outputs
+        import re
+        banned_phrases = [r"communication tree"]
+        def sanitize_text(text: str) -> str:
+            if not isinstance(text, str):
+                return text
+            out = text
+            for p in banned_phrases:
+                out = re.sub(p, 'school emergency contact list', out, flags=re.I)
+            return out
+
+        # Apply sanitization to textual fields
+        if 'strengths' in evaluation:
+            evaluation['strengths'] = sanitize_text(evaluation['strengths'])
+        if 'weaknesses' in evaluation:
+            evaluation['weaknesses'] = sanitize_text(evaluation['weaknesses'])
+        if 'misconceptions_detected' in evaluation:
+            evaluation['misconceptions_detected'] = [sanitize_text(m) for m in evaluation['misconceptions_detected']]
+        # preserve follow_up_guidance from question metadata if present but sanitize
+        evaluation['follow_up_guidance'] = sanitize_text(question_data.get('follow_up_guidance', ''))
+
         return evaluation
     except (json.JSONDecodeError, IndexError) as e:
         print(f"Failed to parse LLM response into JSON: {e}")
