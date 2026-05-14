@@ -10,6 +10,7 @@ def run_interview_session():
     """
     Manages the state and flow of the AI interview.
     """
+    # normal interview flow
     if 'questions' not in st.session_state:
         st.session_state.questions = load_questions(num_questions=4)
     
@@ -20,7 +21,8 @@ def run_interview_session():
         # Interview finished, generate report and go to results
         with st.spinner("Generating your final preparedness report..."):
             st.session_state.final_report = generate_final_report(st.session_state.evaluation_results)
-        st.switch_page("2_Results")
+        # Use explicit relative file path for switch_page to avoid "Could not find page" errors
+        st.switch_page("pages/2_Results.py")
         return
 
     current_question = questions[q_index]
