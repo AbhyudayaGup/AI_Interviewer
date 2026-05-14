@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.ui import setup_page, display_header
+from utils.ui import setup_page, display_header, display_footer
 
 
 def main():
@@ -30,6 +30,9 @@ def main():
         
         # Use st.page_link for same-page navigation within Streamlit
         st.page_link("pages/1_Interview.py", label="🚀 Start Preparedness Evaluation", icon="▶️")
+
+        # Footer
+        display_footer()
 
 
 if __name__ == "__main__":

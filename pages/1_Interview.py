@@ -17,7 +17,8 @@ def interview_page():
         st.session_state.user_responses = []
         st.session_state.evaluation_results = []
         # More initializations can go here
-    if 'recording_state' not in st.session_state:
+    # Ensure recording_state exists to avoid widget mutation errors
+    if 'recording_state' not in st.session_state or not isinstance(st.session_state.recording_state, dict):
         st.session_state.recording_state = {}
 
     run_interview_session()

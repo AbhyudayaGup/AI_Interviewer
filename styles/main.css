@@ -140,3 +140,15 @@ div[data-testid="stMetric"] > div[data-testid="stMetricValue"] {
 }
 .hero-cta .cta-button:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(76,29,149,0.45); }
 .hero-note { color: #9fb8d9; font-size: 0.95rem; margin-top: 0.75rem; }
+
+/* Footer */
+.site-footer {
+    text-align: center;
+    padding: 1.25rem 0;
+    color: #9aa7bf;
+    font-size: 0.9rem;
+    margin-top: 2rem;
+}
+
+.site-footer a { color: #78b8ff; text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }

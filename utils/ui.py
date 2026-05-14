@@ -8,7 +8,12 @@ def load_css(file_name):
 
 def setup_page(title):
     """Configures the page with a title and loads custom CSS."""
-    st.set_page_config(page_title=title, layout="wide", initial_sidebar_state="collapsed")
+    # If a favicon exists in assets, use it for the page icon in Streamlit
+    favicon_path = os.path.join("assets", "favicon.png")
+    if os.path.exists(favicon_path):
+        st.set_page_config(page_title=title, page_icon=favicon_path, layout="wide", initial_sidebar_state="collapsed")
+    else:
+        st.set_page_config(page_title=title, layout="wide", initial_sidebar_state="collapsed")
     
     # Load custom CSS
     css_file = os.path.join("styles", "main.css")
@@ -35,3 +40,14 @@ def display_welcome_message():
         """,
         unsafe_allow_html=True
     )
+
+def display_footer():
+    """Renders a small footer at the bottom of the page."""
+    footer_html = """
+    <div class="site-footer">
+        Made with care by Abhyudaya — TSRS Moulsari AI Project
+        &nbsp;&middot;&nbsp;
+        <a href="https://github.com/abhyudayagup" target="_blank" rel="noreferrer">GitHub</a>
+    </div>
+    """
+    st.markdown(footer_html, unsafe_allow_html=True)
